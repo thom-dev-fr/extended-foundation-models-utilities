@@ -491,12 +491,15 @@ public struct ChatCompletionsLanguageModel: Sendable, LanguageModel {
         switch entry {
         case .instructions(let instructions):
           // Instructions become system-role messages.
-          messages.append(
-            ChatCompletionsClient.ChatMessage(
-              role: .system,
-              content: try instructions.segments.flatMap { try convertedSegment($0, in: entry) }
+          let content = try instructions.segments.flatMap { try convertedSegment($0, in: entry) }
+          if !content.isEmpty {
+            messages.append(
+              ChatCompletionsClient.ChatMessage(
+                role: .system,
+                content: content
+              )
             )
-          )
+          }
 
         case .prompt(let prompt):
           // User prompts; flush any orphaned reasoning as a message first.

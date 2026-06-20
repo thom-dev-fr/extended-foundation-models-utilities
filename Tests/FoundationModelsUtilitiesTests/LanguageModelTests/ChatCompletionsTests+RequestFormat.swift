@@ -58,6 +58,20 @@ extension ChatCompletionsTests {
       #expect(messages?.last?["role"] as? String == "user")
     }
 
+    @Test func `omits system message for empty instructions`() async throws {
+      MockSSEProtocol.handler = { _ in (200, MockSSE.text("OK")) }
+
+      let model = makeMockModel()
+      let instructions = Instructions { }
+      let session = LanguageModelSession(model: model, instructions: instructions)
+      let _ = try await session.respond(to: "Hello!")
+
+      let body = try requestBody()
+      let messages = try #require(body["messages"] as? [[String: Any]])
+      #expect(messages.contains { $0["role"] as? String == "system" } == false)
+      #expect(messages.first?["role"] as? String == "user")
+    }
+
     @Test func `merges custom headers with defaults`() async throws {
       MockSSEProtocol.handler = { _ in (200, MockSSE.text("OK")) }
 
