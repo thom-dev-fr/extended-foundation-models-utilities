@@ -45,7 +45,9 @@ extension ChatCompletionsTests {
         )
       }
 
-      let session = LanguageModelSession(model: makeMockModel())
+      let session = LanguageModelSession(
+        model: makeMockModel(capabilities: [.toolCalling, .reasoning])
+      )
       let _ = try await session.respond(to: "What is the answer?")
 
       let reasoningEntries = session.transcript.compactMap(\.reasoning)
@@ -74,7 +76,9 @@ extension ChatCompletionsTests {
         )
       }
 
-      let session = LanguageModelSession(model: makeMockModel())
+      let session = LanguageModelSession(
+        model: makeMockModel(capabilities: [.toolCalling, .reasoning])
+      )
       let _ = try await session.respond(to: "test")
 
       let reasoningEntries = session.transcript.compactMap(\.reasoning)
@@ -116,7 +120,9 @@ extension ChatCompletionsTests {
         }
       }
 
-      let session = LanguageModelSession(model: makeMockModel())
+      let session = LanguageModelSession(
+        model: makeMockModel(capabilities: [.toolCalling, .reasoning])
+      )
       let _ = try await session.respond(to: "First question")
       let _ = try await session.respond(to: "Follow up")
 
@@ -154,7 +160,7 @@ extension ChatCompletionsTests {
       }
 
       let session = LanguageModelSession(
-        model: makeMockModel(),
+        model: makeMockModel(capabilities: [.toolCalling, .reasoning]),
         tools: [MockWeatherTool()]
       )
       let _ = try await session.respond(to: "Weather in NYC?")

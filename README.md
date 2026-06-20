@@ -62,13 +62,17 @@ let response = try await session.respond(to: "How many folds does it take to mak
 print(response.content)
 ```
 
-When initializing the model, you can specify some of its capabilities based on the server you're connecting to. Some local LLM servers don't support guided generation, for example.
+When initializing the model, declare the capabilities supported by the server you're connecting to. By default, only `.toolCalling` is declared; add `.vision`, `.reasoning`, or `.guidedGeneration` explicitly when the provider reliably supports them.
 
 ```swift
 let model = ChatCompletionsLanguageModel(
   name: "minimax-m2.5",
   url: URL(string: "http://localhost/v1:8000")!,
-  supportsGuidedGeneration: false
+  capabilities: [.toolCalling, .guidedGeneration]
+)
+```
+
+The older `supportsGuidedGeneration` initializer is deprecated. Existing calls still compile, but new code should use `capabilities`.
 )
 ```
 

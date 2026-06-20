@@ -50,9 +50,9 @@ public struct ChatCompletionsLanguageModel: Sendable, LanguageModel {
   /// defaults. Use this to provide authorization tokens or other
   /// vendor-specific headers.
   public var additionalHeaders: [String: String]
-
+  
   // Implementation of LanguageModel Protocol
-  public var supportsGuidedGeneration: Bool
+  public var capabilities: LanguageModelCapabilities
 
   // Overridden in tests to inject a URLSession with mock protocol handlers.
   var urlSession: URLSession?
@@ -65,28 +65,45 @@ public struct ChatCompletionsLanguageModel: Sendable, LanguageModel {
   ///   - url: The base URL of the chat completions endpoint.
   ///   - additionalHeaders: Headers to merge on top of the defaults
   ///     (for example, an `Authorization` header).
-  ///   - supportsGuidedGeneration: Whether the endpoint supports the
-  ///     `response_format` field for structured output. Defaults to `true`.
+  ///   - capabilities: The model capabilities the endpoint reliably supports.
+  ///     Defaults to ``defaultCapabilities``.
   public init(
     name: String,
     url: URL,
     additionalHeaders: [String: String] = [:],
-    supportsGuidedGeneration: Bool = true
+    capabilities: [LanguageModelCapabilities.Capability] = Self.defaultCapabilities
   ) {
     self.name = name
     self.url = url
     self.additionalHeaders = additionalHeaders
-    self.supportsGuidedGeneration = supportsGuidedGeneration
+    self.capabilities = LanguageModelCapabilities(capabilities: capabilities)
   }
 
-  // Implementation of LanguageModel Protocol
-  public var capabilities: LanguageModelCapabilities {
-    if supportsGuidedGeneration {
-      LanguageModelCapabilities(capabilities: [.vision, .toolCalling, .reasoning, .guidedGeneration]
-      )
-    } else {
-      LanguageModelCapabilities(capabilities: [.vision, .toolCalling, .reasoning])
-    }
+  /// Creates a chat completions language model.
+  ///
+  /// - Parameters:
+  ///   - name: The model identifier sent in the `model` field of each
+  ///     request.
+  ///   - url: The base URL of the chat completions endpoint.
+  ///   - additionalHeaders: Headers to merge on top of the defaults
+  ///     (for example, an `Authorization` header).
+  ///   - supportsGuidedGeneration: Whether the endpoint supports the
+  ///     `response_format` field for structured output.
+  @available(*, deprecated, message: "Use init(name:url:additionalHeaders:capabilities:) instead.")
+  public init(
+    name: String,
+    url: URL,
+    additionalHeaders: [String: String] = [:],
+    supportsGuidedGeneration: Bool
+  ) {
+    self.init(
+      name: name,
+      url: url,
+      additionalHeaders: additionalHeaders,
+      capabilities: supportsGuidedGeneration
+        ? Self.defaultCapabilities + [.guidedGeneration]
+        : Self.defaultCapabilities
+    )
   }
 
   // Implementation of LanguageModel Protocol

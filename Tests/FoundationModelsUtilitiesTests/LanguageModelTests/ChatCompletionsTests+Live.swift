@@ -62,8 +62,7 @@ extension ChatCompletionsTests {
       let model = ChatCompletionsLanguageModel(
         name: modelName,
         url: url,
-        additionalHeaders: headers,
-        supportsGuidedGeneration: false
+        additionalHeaders: headers
       )
 
       let session = LanguageModelSession(model: model)

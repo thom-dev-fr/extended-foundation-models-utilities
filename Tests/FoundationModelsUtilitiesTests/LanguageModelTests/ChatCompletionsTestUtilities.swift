@@ -20,7 +20,8 @@ import Testing
 func makeMockModel(
   name: String = "test-model",
   headers: [String: String] = [:],
-  supportsGuidedGeneration: Bool = true
+  capabilities: [LanguageModelCapabilities.Capability] =
+    ChatCompletionsLanguageModel.defaultCapabilities
 ) -> ChatCompletionsLanguageModel {
   let config = URLSessionConfiguration.ephemeral
   config.protocolClasses = [MockSSEProtocol.self]
@@ -28,7 +29,7 @@ func makeMockModel(
     name: name,
     url: URL(string: "https://mock-llm.test/v1")!,
     additionalHeaders: headers,
-    supportsGuidedGeneration: supportsGuidedGeneration
+    capabilities: capabilities
   )
   model.urlSession = URLSession(configuration: config)
   return model

@@ -24,33 +24,69 @@ extension ChatCompletionsTests {
         name: "foo",
         url: url,
         additionalHeaders: ["Authorization": "Bearer test"],
-        supportsGuidedGeneration: false
+        capabilities: [.toolCalling, .vision]
       )
       #expect(model.name == "foo")
       #expect(model.url == url)
       #expect(model.additionalHeaders == ["Authorization": "Bearer test"])
-      #expect(model.supportsGuidedGeneration == false)
-    }
-
-    @Test func `defaults to supporting guided generation`() {
-      let model = makeMockModel()
-      #expect(model.supportsGuidedGeneration == true)
-    }
-
-    @Test func `capabilities include guided generation when supported`() {
-      let model = makeMockModel(supportsGuidedGeneration: true)
-      #expect(model.capabilities.contains(.vision))
       #expect(model.capabilities.contains(.toolCalling))
-      #expect(model.capabilities.contains(.reasoning))
+      #expect(model.capabilities.contains(.vision))
+      #expect(!model.capabilities.contains(.guidedGeneration))
+    }
+
+    @Test func `defaults to tool calling only`() {
+      let model = ChatCompletionsLanguageModel(
+        name: "foo",
+        url: URL(string: "https://api.example.com/v1")!
+      )
+      #expect(model.capabilities.contains(.toolCalling))
+      #expect(!model.capabilities.contains(.vision))
+      #expect(!model.capabilities.contains(.reasoning))
+      #expect(!model.capabilities.contains(.guidedGeneration))
+    }
+
+    @Test func `deprecated guided generation initializer maps to tool calling and guided generation`() {
+      let model = ChatCompletionsLanguageModel(
+        name: "foo",
+        url: URL(string: "https://api.example.com/v1")!,
+        supportsGuidedGeneration: true
+      )
+      #expect(model.capabilities.contains(.toolCalling))
       #expect(model.capabilities.contains(.guidedGeneration))
+      #expect(!model.capabilities.contains(.vision))
+      #expect(!model.capabilities.contains(.reasoning))
     }
 
-    @Test func `capabilities exclude guided generation when not supported`() {
-      let model = makeMockModel(supportsGuidedGeneration: false)
-      #expect(model.capabilities.contains(.vision))
+    @Test func `deprecated guided generation initializer maps false to default capabilities`() {
+      let model = ChatCompletionsLanguageModel(
+        name: "foo",
+        url: URL(string: "https://api.example.com/v1")!,
+        supportsGuidedGeneration: false
+      )
       #expect(model.capabilities.contains(.toolCalling))
+      #expect(!model.capabilities.contains(.guidedGeneration))
+      #expect(!model.capabilities.contains(.vision))
+      #expect(!model.capabilities.contains(.reasoning))
+    }
+
+    @Test func `deprecated guided generation setter preserves other capabilities`() {
+      var model = ChatCompletionsLanguageModel(
+        name: "foo",
+        url: URL(string: "https://api.example.com/v1")!,
+        capabilities: [.toolCalling, .vision, .reasoning, .guidedGeneration]
+      )
+
+      model.supportsGuidedGeneration = false
+      #expect(model.capabilities.contains(.toolCalling))
+      #expect(model.capabilities.contains(.vision))
       #expect(model.capabilities.contains(.reasoning))
       #expect(!model.capabilities.contains(.guidedGeneration))
+
+      model.supportsGuidedGeneration = true
+      #expect(model.capabilities.contains(.toolCalling))
+      #expect(model.capabilities.contains(.vision))
+      #expect(model.capabilities.contains(.reasoning))
+      #expect(model.capabilities.contains(.guidedGeneration))
     }
   }
 }

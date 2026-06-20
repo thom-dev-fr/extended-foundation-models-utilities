@@ -38,7 +38,9 @@ extension ChatCompletionsTests {
         )
       }
 
-      let session = LanguageModelSession(model: makeMockModel())
+      let session = LanguageModelSession(
+        model: makeMockModel(capabilities: [.toolCalling, .guidedGeneration])
+      )
       let response = try await session.respond(
         to: "Weather?",
         generating: MockWeatherInfo.self
@@ -53,7 +55,9 @@ extension ChatCompletionsTests {
         (200, MockSSE.text(#"{"temperature":65,"condition":"cloudy"}"#))
       }
 
-      let session = LanguageModelSession(model: makeMockModel())
+      let session = LanguageModelSession(
+        model: makeMockModel(capabilities: [.toolCalling, .guidedGeneration])
+      )
       let _ = try await session.respond(
         to: "Weather?",
         generating: MockWeatherInfo.self
@@ -86,7 +90,9 @@ extension ChatCompletionsTests {
         return (200, Data(lines.joined(separator: "\n").utf8))
       }
 
-      let session = LanguageModelSession(model: makeMockModel())
+      let session = LanguageModelSession(
+        model: makeMockModel(capabilities: [.toolCalling, .guidedGeneration])
+      )
       let response = try await session.respond(
         to: "Weather?",
         generating: MockWeatherInfo.self

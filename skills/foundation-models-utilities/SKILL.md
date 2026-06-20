@@ -47,7 +47,7 @@ public init(
   name: String,
   url: URL,
   additionalHeaders: [String: String] = [:],
-  supportsGuidedGeneration: Bool = true
+  capabilities: [LanguageModelCapabilities.Capability] = ChatCompletionsLanguageModel.defaultCapabilities
 )
 ```
 
@@ -56,21 +56,22 @@ public init(
 | `name` | The model identifier sent in the `model` field of every request. Forwarded verbatim to the server. |
 | `url` | The base URL of the chat completions endpoint. The model appends `/chat/completions` (or `/v1/chat/completions` if the base URL doesn't already include `v1`). |
 | `additionalHeaders` | Headers merged on top of the defaults (`Content-Type: application/json`, `Accept: text/event-stream`, `User-Agent: <bundle id>`). The most common use is auth — `["Authorization": "Bearer \(apiKey)"]`. Custom headers always win on collision. |
-| `supportsGuidedGeneration` | Whether the server honors the `response_format` / JSON-Schema field. Set to `false` for LLM servers that don't enforce strict structured output. |
+| `capabilities` | The model capabilities the endpoint reliably supports. Defaults to `ChatCompletionsLanguageModel.defaultCapabilities`, which contains only `.toolCalling`. |
 
 ### Capabilities
 
-`ChatCompletionsLanguageModel` declares `.vision`, `.toolCalling`, and `.reasoning` unconditionally, plus `.guidedGeneration` when `supportsGuidedGeneration` is `true`. If your server lacks structured-output support, pass `supportsGuidedGeneration: false` so the framework throws `unsupportedCapability` instead of silently sending a `response_format` field the server will ignore.
+`ChatCompletionsLanguageModel` declares only `.toolCalling` by default. Add `.vision`, `.reasoning`, and `.guidedGeneration` explicitly when your provider reliably supports image input, reasoning traces, or strict structured output. If a session requests a capability you did not declare, the framework throws `unsupportedCapability` before relying on provider-specific behavior.
 
 ### What it sends on the wire
 
 For each `respond(...)` call the executor builds a single streaming POST:
 
 - `messages`: built by walking the transcript. `instructions` → `system`, `prompt` → `user`, `response` → `assistant`, `toolCalls` → `assistant` with a `tool_calls` array, `toolOutput` → `tool` (with `tool_call_id`).
-- `tools`: each enabled `Transcript.ToolDefinition` becomes `{"type":"function","function":{"name","description","parameters"}}`.
-- `tool_choice`: derived from `request.generationOptions.toolCallingMode` — `.allowed`/`.none` → `auto`, `.required` → `required`, `.disallowed` → `none`.
-- `response_format`: when `request.schema` is non-nil and `supportsGuidedGeneration` is true, sent as `{"type":"json_schema","json_schema":{"name","schema","strict":true}}`. The `name` is read from the schema's `title`/`type`, falling back to `"Response"`.
+- `tools`: each enabled `Transcript.ToolDefinition` becomes `{"type":"function","function":{"name","description","parameters"}}`; omitted when no tools are enabled.
+- `tool_choice`: derived from `request.generationOptions.toolCallingMode` — `.allowed`/`.none` → `auto`, `.required` → `required`, `.disallowed` → `none`; omitted when no tools are enabled.
+- `response_format`: when `request.schema` is non-nil and `.guidedGeneration` is declared, sent as `{"type":"json_schema","json_schema":{"name","schema","strict":true}}`. The `name` is read from the schema's `title`/`type`, falling back to `"Response"`.
 - `temperature`, `max_completion_tokens`: forwarded from `request.generationOptions`.
+- `reasoning_effort`: derived from `request.contextOptions.reasoningLevel` when present — `.light` → `low`, `.moderate` → `medium`, `.deep` → `high`, `.custom(value)` → `value`. An explicit `RequestOptions.reasoningEffort` value wins.
 - `stream: true`, `stream_options: {include_usage: true}` — both always set.
 
 Vision: any `.attachment(.image(...))` segment in a prompt is JPEG-encoded, base64-wrapped, and sent as a `data:image/jpeg;base64,...` URL inside an `image_url` content block. `CGImage`-only input is currently supported; other attachment types throw `unsupportedTranscriptContent`.
@@ -83,6 +84,9 @@ Each SSE `data:` chunk is decoded as a `ChatCompletionChunk`. The executor maint
 - `delta.reasoning_content` → `.reasoning(.appendText(...))`
 - `delta.tool_calls[i]` → `.toolCalls(.toolCall(id:name:action: .appendArguments(...)))`. The first chunk for a given `index` carries the `id`/`name`; later chunks carry only argument fragments and are routed by index.
 - `usage` (sent because `include_usage: true`) → `.response(.updateUsage(...))`. Cumulative; emitted AFTER content in the same chunk so the authoritative total replaces any tokens credited by `appendText`.
+- Provider fields allowlisted by `ChatCompletionsLanguageModel.RequestOptions.capturedProviderFields` → `.response(.updateMetadata(...))` under `ChatCompletionsLanguageModel.MetadataKeys.providerMetadata`; callers can read them through `Transcript.Response.chatCompletionsProviderMetadata`.
+
+Use `ChatCompletionsLanguageModel.metadata(options:)` with `ChatCompletionsLanguageModel.RequestOptions` to build request metadata without spelling raw metadata keys yourself. Put provider-specific request fields in `RequestOptions.extraBody` and provider-specific streamed response fields in `RequestOptions.capturedProviderFields`.
 
 `data: [DONE]` and SSE comments (`:` prefix) and non-`data:` field lines (`event:`, `id:`, `retry:`) are skipped.
 
@@ -286,8 +290,8 @@ let response = try await session.respond(to: userPrompt)
 
 ## Pitfalls
 
-- **`supportsGuidedGeneration: true` is the default.** If your server doesn't support `response_format`, set it to `false` explicitly — otherwise the framework will let `respond(to:generating:)` calls through and you'll get whatever free-form output the server produces.
-- **`additionalHeaders` overrides defaults.** Setting `Content-Type` or `User-Agent` here replaces the package's default for that header. Usually you only want to *add* an `Authorization` header.
+- **Only `.toolCalling` is declared by default.** Add `.vision`, `.reasoning`, or `.guidedGeneration` through `capabilities` when your provider reliably supports them.
+- **`additionalHeaders` overrides defaults.** Setting `Content-Type` or `User-Agent` here replaces the package's default for that header. Usually you only want to _add_ an `Authorization` header.
 - **Base URL handling is "include `/v1` or don't".** If the base URL contains `v1` in any path component, the executor appends `/chat/completions`. Otherwise it appends `/v1/chat/completions`. Pass the base of your endpoint without the `/chat/completions` suffix.
 - **A `Skills` activation produces a tool call in the transcript.** Even prompt-based skills generate a tool-call/tool-output pair. Pair with `droppingCompletedToolCalls()` if these are noise for your model.
 - **Instructions-based skills invalidate the KV cache.** Reach for them only when the body really must persist across turns; otherwise prefer prompt-based skills.
