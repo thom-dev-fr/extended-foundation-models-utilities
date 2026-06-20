@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-  name: "foundation-models-utilities",
+  name: "extended-foundation-models-utilities",
   platforms: [
     .macOS("27.0"),
     .iOS("27.0"),

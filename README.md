@@ -5,18 +5,21 @@
 
 ## Overview
 
+This repository is a fork of Apple's [`foundation-models-utilities`](https://github.com/apple/foundation-models-utilities). This fork is independent and is not affiliated with, sponsored by, or endorsed by Apple.
+
 This package adds extra utilities for working with LLMs via the [Foundation Models framework](https://developer.apple.com/documentation/FoundationModels), such as custom skills, context management helpers, and a chat completions client that connects to a hosted model of your choice.
 
 - 💻 **Supported platforms**: Apple platforms and select Linux distributions like Ubuntu
 - 🛠️ **Coding agent skills**: [`skills/`](skills/) can teach your favorite coding agent how to use this package
-- 💬 **Issue reporting**: [Apple Developer Forums](https://developer.apple.com/forums/topics/machine-learning-and-ai/machine-learning-and-ai-foundation-models)
+- 💬 **Upstream issue reporting**: [Apple Developer Forums](https://developer.apple.com/forums/topics/machine-learning-and-ai/machine-learning-and-ai-foundation-models)
+- 🍴 **Fork repository**: https://github.com/thom-dev-fr/extended-foundation-models-utilities
 
 ## Use the Package
 
 **Xcode** (Apple platforms)
 
 1. From the Xcode menu bar, choose File > Add Package Dependencies.
-2. Enter the package URL: https://github.com/apple/foundation-models-utilities.
+2. Enter the package URL: https://github.com/thom-dev-fr/extended-foundation-models-utilities.
 3. Xcode downloads the package assets.
 
 **Swift Package Manager** (all supported platforms)
@@ -27,13 +30,13 @@ Add as a dependency to your Swift package `Package.swift` file like this:
 let package = Package(
     name: "YourApp",
     dependencies: [
-        .package(url: "https://github.com/apple/foundation-models-utilities", from: "1.0.0")
+        .package(url: "https://github.com/thom-dev-fr/extended-foundation-models-utilities", branch: "main")
     ],
     targets: [
         .target(
             name: "YourApp",
             dependencies: [
-                .product(name: "FoundationModelsUtilities", package: "foundation-models-utilities")
+                .product(name: "FoundationModelsUtilities", package: "extended-foundation-models-utilities")
             ]
         )
     ]
@@ -228,3 +231,7 @@ The model may now issue a second tool call to remove the skill's content from it
                                     │            Response            │
                                     └────────────────────────────────┘
 ```
+
+## License
+
+This fork preserves the upstream Apache License 2.0 license terms and copyright notices. See [`LICENSE.txt`](LICENSE.txt). Apple is not responsible for this fork or its changes.
